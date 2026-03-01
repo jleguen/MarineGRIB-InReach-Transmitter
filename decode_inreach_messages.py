@@ -42,7 +42,12 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument(
         "--paste",
         action="store_true",
-        help="Paste split messages directly in terminal instead of reading input_file",
+        help="Paste split messages directly in terminal (default when no input_file)",
+    )
+    parser.add_argument(
+        "--from-file",
+        action="store_true",
+        help="Prompt for input/output file paths (interactive file mode)",
     )
     return parser.parse_args(argv)
 
@@ -210,7 +215,9 @@ def main(argv: list[str]) -> int:
     args = parse_args(argv)
     text: str
 
-    if args.paste:
+    default_paste_mode = not args.input_file and not args.from_file
+
+    if args.paste or default_paste_mode:
         text = _prompt_pasted_messages()
         if not text.strip():
             print("Error: no pasted content provided", file=sys.stderr)

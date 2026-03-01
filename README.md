@@ -69,3 +69,68 @@ Utilising this method, you can acquire wind and pressure data for the Atlantic c
 
 **Result (in GRIB viewer app):**
 ![Screenshot GRIB viewer](images/screenshot_grib_viewer.jpg)
+
+## Example
+```ecmwf:30n,40n,20e,35e|1,1|12|wind,press```
+File: [files/attachments/ecmwf20260228165502428.grb](files/attachments/ecmwf20260228165502428.grb)
+File size: 802 bytes
+
+```bash
+uv run demo_grib_to_cli.py files/attachments/ecmwf20260228165502428.grb --show-payload
+```
+```=== GRIB Encode/Split Demo ===
+File: files/attachments/ecmwf20260228165502428.grb
+Original bytes: 802
+Compressed bytes (zlib): 682
+Base64 chars: 912
+Split length: 120
+Message count: 8
+
+=== Base64 Payload ===
+eJxzD/J0YmCUYmRgkGFKmve/gSmNgUGKSYaNgZGBh4uBgUGUAQQUGP4zMAgwcDOUGjD4KTQwzHFg6NjB/IL5hQNYmuESBwOTq8RNK04PhfPLmzsTVkVoCLIrCRrU8DB4yZ1fEfxxy4kE7QntzYoRHUbifqpCnMwPd5yKUetvOxyY0WIh66sefOLyzCXbIlT62pgdK1pMhPw1pnB83rhmT5hiL5vSwYwJJuL+mldeTvZ8s89HltdNWTFQwkc6QPNq11YpiyMuUr1shws7LsRo+mlMO/10kskZN6kp3k9YP5VmmQRoSuqGeXVyJOnPFPD4pjXV5UTQqph3z605cxaG6ES/mZrkqrMxaots3vfdW6/8rt6p0KfG9VZpPYM5ELiDQ4YFHjKKmQxcaCHDSDhk9nAwMBwKvv6JI9482s4/zy4gLD4p0NHeNzLa19IqNjYgKjUjIDTM0y/NMzoiKDQoKCa3IDIiMizWOcPLL74tNSanqiI3JiDWzz/CxCwwwdqssjo3Kz8zJjcgVFtSOc6toLUw3jvaLMTPKsRNSdzINzU/1iHKL8kr0jcsOtRdzds12jXE39c0MsnHy8nL2tnZ0MXX38DdOz4sKDwwyNFASlvc2jM4pCgHaHVAkKOdGIOhS4RveKJ3bCjWMFAiPwyK/vpxOPq6OKv7eTvY2rh5OTh4e+skRTg5OYX4e9lmx6ZFRPoE27k4u3n7mKq4Jri4WQTlRNpFapiYOeopO0VH2DhbBUaWeypaK6YLaXimZdgFmwd6NQaJx0c7i9lkFmTnV6V7RC3KtRYRk1RNmlhcke+dapzYV+DIyS6umllYmJqRaZVcX5wWacwgbJ8Zl5WSkplcltNRmGAiYuXomxiemJFRXZJfVDQh3skozD83OTk/JrgYHAYAAILvQg==
+
+=== inReach-style Messages ===
+
+--- Message 1/8 ---
+msg 1/8:
+eJxzD/J0YmCUYmRgkGFKmve/gSmNgUGKSYaNgZGBh4uBgUGUAQQUGP4zMAgwcDOUGjD4KTQwzHFg6NjB/IL5hQNYmuESBwOTq8RNK04PhfPLmzsTVkVoCLIr
+end
+
+--- Message 2/8 ---
+msg 2/8:
+CRrU8DB4yZ1fEfxxy4kE7QntzYoRHUbifqpCnMwPd5yKUetvOxyY0WIh66sefOLyzCXbIlT62pgdK1pMhPw1pnB83rhmT5hiL5vSwYwJJuL+mldeTvZ8s89H
+end
+
+--- Message 3/8 ---
+msg 3/8:
+ltdNWTFQwkc6QPNq11YpiyMuUr1shws7LsRo+mlMO/10kskZN6kp3k9YP5VmmQRoSuqGeXVyJOnPFPD4pjXV5UTQqph3z605cxaG6ES/mZrkqrMxaots3vfd
+end
+
+--- Message 4/8 ---
+msg 4/8:
+W6/8rt6p0KfG9VZpPYM5ELiDQ4YFHjKKmQxcaCHDSDhk9nAwMBwKvv6JI9482s4/zy4gLD4p0NHeNzLa19IqNjYgKjUjIDTM0y/NMzoiKDQoKCa3IDIiMizW
+end
+
+--- Message 5/8 ---
+msg 5/8:
+OcPLL74tNSanqiI3JiDWzz/CxCwwwdqssjo3Kz8zJjcgVFtSOc6toLUw3jvaLMTPKsRNSdzINzU/1iHKL8kr0jcsOtRdzds12jXE39c0MsnHy8nL2tnZ0MXX
+end
+
+--- Message 6/8 ---
+msg 6/8:
+38DdOz4sKDwwyNFASlvc2jM4pCgHaHVAkKOdGIOhS4RveKJ3bCjWMFAiPwyK/vpxOPq6OKv7eTvY2rh5OTh4e+skRTg5OYX4e9lmx6ZFRPoE27k4u3n7mKq4
+end
+
+--- Message 7/8 ---
+msg 7/8:
+Jri4WQTlRNpFapiYOeopO0VH2DhbBUaWeypaK6YLaXimZdgFmwd6NQaJx0c7i9lkFmTnV6V7RC3KtRYRk1RNmlhcke+dapzYV+DIyS6umllYmJqRaZVcX5wW
+end
+
+--- Message 8/8 ---
+msg 8/8:
+acwgbJ8Zl5WSkplcltNRmGAiYuXomxiemJFRXZJfVDQh3skozD83OTk/JrgYHAYAAILvQg==
+end
+
+```
+
+![](images/Screenshot_2026-02-28_17-56-44.png)

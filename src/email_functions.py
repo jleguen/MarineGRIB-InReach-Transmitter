@@ -1,19 +1,24 @@
-import os
-import re
-import pickle
 import base64
-from email.mime.text import MIMEText
+import logging
+import os
+import pickle
+import re
+import sys
 from base64 import urlsafe_b64decode
 from datetime import datetime
-from googleapiclient.discovery import build
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from email.mime.text import MIMEText
 
-import sys
+import requests
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+
 sys.path.append(".")
 from src import configs
-from src import saildoc_functions as saildoc_func
 from src import inreach_functions as inreach_func
+from src import saildoc_functions as saildoc_func
+
+logger = logging.getLogger(__name__)
 
 
 # Set up the Gmail API: https://developers.google.com/gmail/api/quickstart/python
@@ -31,7 +36,7 @@ def gmail_authenticate():
         # Save the credentials for the next run
         with open(configs.TOKEN_PATH, "wb") as token:
             pickle.dump(creds, token)
-    return build('gmail', 'v1', credentials=creds)
+    return build("gmail", "v1", credentials=creds)
 
 
 def process_new_inreach_message(auth_service):
@@ -55,20 +60,18 @@ def process_new_inreach_message(auth_service):
     garmin_reply_url = None
 
     for message_id in unanswered_messages:
-        print("New msg received")
+        logger.info("New message received: %s", message_id)
         try:
-            grib_path, garmin_reply_url = _request_and_process_saildocs_grib(message_id, auth_service)
-            print(f"Answered message {message_id}", flush=True)
+            grib_path, garmin_reply_url = _request_and_process_saildocs_grib(
+                message_id, auth_service
+            )
+            logger.info("Answered message %s", message_id)
         except Exception as e:
-            print(f"Error answering message {message_id}: {e}", flush=True)
+            logger.exception("Error answering message %s: %s", message_id, e)
         finally:
             _append_to_previous_messages(message_id)
 
     return grib_path, garmin_reply_url
-
-
-
-
 
 
 ######## HELPERS ########
@@ -86,12 +89,11 @@ def _build_gmail_message(destination, obj, body):
     dict: Gmail API compatible message structure.
     """
     message = MIMEText(body)
-    message['to'] = destination
-    message['from'] = configs.GMAIL_ADDRESS
-    message['subject'] = obj
+    message["to"] = destination
+    message["from"] = configs.GMAIL_ADDRESS
+    message["subject"] = obj
 
-    return {'raw': base64.urlsafe_b64encode(message.as_bytes()).decode()}
-
+    return {"raw": base64.urlsafe_b64encode(message.as_bytes()).decode()}
 
 
 def _send_gmail_message(service, destination, obj, body):
@@ -106,11 +108,12 @@ def _send_gmail_message(service, destination, obj, body):
     Returns:
     dict: Information about the sent message.
     """
-    return service.users().messages().send(
-        userId="me",
-        body=_build_gmail_message(destination, obj, body)
-    ).execute()
-
+    return (
+        service.users()
+        .messages()
+        .send(userId="me", body=_build_gmail_message(destination, obj, body))
+        .execute()
+    )
 
 
 def _search_gmail_messages(service, query):
@@ -127,18 +130,22 @@ def _search_gmail_messages(service, query):
     messages = []
 
     while True:
-        result = service.users().messages().list(userId='me', q=query, pageToken=page_token).execute()
-        if 'messages' in result:
-            messages.extend(result['messages'])
+        result = (
+            service.users()
+            .messages()
+            .list(userId="me", q=query, pageToken=page_token)
+            .execute()
+        )
+        if "messages" in result:
+            messages.extend(result["messages"])
 
-        page_token = result.get('nextPageToken', None)
+        page_token = result.get("nextPageToken", None)
         if not page_token:
             break
     return messages
 
 
-
-def _get_grib_attachment(service, msg_id, user_id='me'):
+def _get_grib_attachment(service, msg_id, user_id="me"):
     """Retrieve and save the first GRIB attachment from a Gmail message.
 
     Args:
@@ -151,21 +158,28 @@ def _get_grib_attachment(service, msg_id, user_id='me'):
     """
     try:
         message = service.users().messages().get(userId=user_id, id=msg_id).execute()
-        parts = message['payload']['parts']
+        parts = message["payload"]["parts"]
 
         for part in parts:
-            filename = part.get('filename')
-            if filename and filename.endswith('.grb') and 'attachmentId' in part['body']:
-                path = _download_gmail_attachment(service, user_id, msg_id, part['body']['attachmentId'], filename)
+            filename = part.get("filename")
+            if (
+                filename
+                and filename.endswith(".grb")
+                and "attachmentId" in part["body"]
+            ):
+                path = _download_gmail_attachment(
+                    service, user_id, msg_id, part["body"]["attachmentId"], filename
+                )
                 return path
 
-        print("No GRIB attachment found.")
+        logger.warning("No GRIB attachment found for message %s", msg_id)
         return None
 
     except Exception as error:
-        print(f'An error occurred: {error}')
+        logger.exception(
+            "Failed to fetch GRIB attachment for message %s: %s", msg_id, error
+        )
         return None
-
 
 
 def _request_and_process_saildocs_grib(message_id, auth_service):
@@ -184,7 +198,9 @@ def _request_and_process_saildocs_grib(message_id, auth_service):
     msg_text, garmin_reply_url = _fetch_message_text_and_url(message_id, auth_service)
 
     # request saildocs grib data
-    _send_gmail_message(auth_service, configs.SAILDOCS_EMAIL_QUERY, "", "send " + msg_text)
+    _send_gmail_message(
+        auth_service, configs.SAILDOCS_EMAIL_QUERY, "", "send " + msg_text
+    )
     time_sent = datetime.utcnow()
     last_response = saildoc_func.wait_for_saildocs_response(auth_service, time_sent)
 
@@ -194,11 +210,12 @@ def _request_and_process_saildocs_grib(message_id, auth_service):
 
     # process the saildocs response
     try:
-        grib_path = _get_grib_attachment(auth_service, last_response['id'])
+        grib_path = _get_grib_attachment(auth_service, last_response["id"])
     except:
-        inreach_func.send_reply_to_inreach(garmin_reply_url, "Could not download grib attachment")
+        inreach_func.send_reply_to_inreach(
+            garmin_reply_url, "Could not download grib attachment"
+        )
         return False
-
 
     return grib_path, garmin_reply_url
 
@@ -215,7 +232,9 @@ def _get_new_or_refreshed_credentials(creds):
     if creds and creds.expired and creds.refresh_token:
         creds.refresh(Request())
     else:
-        flow = InstalledAppFlow.from_client_secrets_file(configs.CREDENTIALS_PATH, configs.SCOPES)
+        flow = InstalledAppFlow.from_client_secrets_file(
+            configs.CREDENTIALS_PATH, configs.SCOPES
+        )
         creds = flow.run_local_server(port=0)
     return creds
 
@@ -233,12 +252,18 @@ def _download_gmail_attachment(service, user_id, msg_id, att_id, filename):
     Returns:
     str: Path to the downloaded attachment.
     """
-    att = service.users().messages().attachments().get(userId=user_id, messageId=msg_id, id=att_id).execute()
-    data = att['data']
-    file_data = base64.urlsafe_b64decode(data.encode('UTF-8'))
+    att = (
+        service.users()
+        .messages()
+        .attachments()
+        .get(userId=user_id, messageId=msg_id, id=att_id)
+        .execute()
+    )
+    data = att["data"]
+    file_data = base64.urlsafe_b64decode(data.encode("UTF-8"))
 
     path = os.path.join(configs.FILE_PATH, filename)
-    with open(path, 'wb') as f:
+    with open(path, "wb") as f:
         f.write(file_data)
 
     return path
@@ -251,7 +276,7 @@ def _load_previous_messages():
     Returns:
         set: A set of message IDs that have been processed before.
     """
-    with open(configs.LIST_OF_PREVIOUS_MESSAGES_FILE_LOCATION, 'r') as f:
+    with open(configs.LIST_OF_PREVIOUS_MESSAGES_FILE_LOCATION, "r") as f:
         return set(f.read().splitlines())
 
 
@@ -262,8 +287,8 @@ def _append_to_previous_messages(message_id):
     Args:
         message_id (str): The ID of the message to be appended.
     """
-    with open(configs.LIST_OF_PREVIOUS_MESSAGES_FILE_LOCATION, 'a') as f:
-        f.write(f'{message_id}\n')
+    with open(configs.LIST_OF_PREVIOUS_MESSAGES_FILE_LOCATION, "a") as f:
+        f.write(f"{message_id}\n")
 
 
 def _get_new_message_ID(auth_service, previous_messages):
@@ -278,7 +303,7 @@ def _get_new_message_ID(auth_service, previous_messages):
         set: A set of new message IDs that haven't been processed.
     """
     inreach_msgs = _search_gmail_messages(auth_service, configs.SERVICE_EMAIL)
-    inreach_msgs_ids = {msg['id'] for msg in inreach_msgs}
+    inreach_msgs_ids = {msg["id"] for msg in inreach_msgs}
 
     return inreach_msgs_ids.difference(previous_messages)
 
@@ -294,8 +319,35 @@ def _fetch_message_text_and_url(message_id, auth_service):
     Returns:
         tuple: The extracted message text and Garmin reply URL.
     """
-    msg = auth_service.users().messages().get(userId='me', id=message_id).execute()
-    msg_text = urlsafe_b64decode(msg['payload']['body']['data']).decode().split('\r')[0].lower()
-    garmin_reply_url = next((x.replace('\r', '') for x in urlsafe_b64decode(msg['payload']['body']['data']).decode().split('\n') if configs.BASE_GARMIN_REPLY_URL in x), None)
+    msg = auth_service.users().messages().get(userId="me", id=message_id).execute()
+    msg_text = (
+        urlsafe_b64decode(msg["payload"]["body"]["data"])
+        .decode()
+        .split("\r")[0]
+        .lower()
+    )
+    garmin_reply_url = next(
+        (
+            x.replace("\r", "")
+            for x in urlsafe_b64decode(msg["payload"]["body"]["data"])
+            .decode()
+            .split("\n")
+            if configs.BASE_GARMIN_REPLY_URL in x
+        ),
+        None,
+    )
+    if garmin_reply_url:
+        garmin_reply_url = resolve_url_direct(garmin_reply_url)
 
     return msg_text, garmin_reply_url
+
+
+def resolve_url_direct(url):
+    """Resolve redirect chain and return final URL."""
+    try:
+        response = requests.get(url, allow_redirects=True, timeout=15)
+        logger.info("Resolved URL %s -> %s", url, response.url)
+        return response.url
+    except requests.RequestException as exc:
+        logger.warning("Could not resolve URL %s: %s", url, exc)
+        return url

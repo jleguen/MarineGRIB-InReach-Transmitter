@@ -87,6 +87,13 @@ END
 ```
 on a new line.
 
+If Garmin Earthmate does not allow text selection/copy:
+- Install **Universal Copy** on Android.
+- Open Earthmate and display the full message thread.
+- Launch Universal Copy from the notification/accessibility overlay.
+- Select/copy the `msg X/Y: ... end` blocks.
+- Paste into Termux when running `decode_inreach_messages.py --paste`.
+
 ### Notes
 - Message order does not matter; the decoder reorders chunks using `msg X/Y:`.
 - The script removes `msg X/Y:` and `end`, then base64-decodes and zlib-decompresses to rebuild the `.grb` file.

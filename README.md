@@ -58,6 +58,40 @@ end <--- Indicates end of the second message
 
 To decode these messages efficiently, open them via the Garmin Earthmate App on an iPad. Then, copy and paste the messages into the Decoder Jupyter Notebook, for instance, using the Carnets App. Once decoded, you can view the resulting GRIB-file with a GRIB viewer app, such as LuckGrib.
 
+## ANDROID OFFLINE DECODER (TERMUX)
+
+If you want to decode directly on an Android phone without internet, you can use `decode_inreach_messages.py`.
+
+### 1. One-time setup (before going offline)
+- Install Termux
+- Install Python in Termux:
+```bash
+pkg update && pkg install python
+```
+- Copy `decode_inreach_messages.py` to your phone (for example in `Download/`)
+
+### 2. Decode from a text file
+If your split messages are saved in a text file:
+```bash
+python decode_inreach_messages.py /sdcard/Download/messages.txt -o /sdcard/Download/rebuilt.grb
+```
+
+### 3. Decode by pasting messages directly
+If you just copied messages from the inReach app:
+```bash
+python decode_inreach_messages.py --paste -o /sdcard/Download/rebuilt.grb
+```
+Then paste all message blocks, and finish with:
+```text
+END
+```
+on a new line.
+
+### Notes
+- Message order does not matter; the decoder reorders chunks using `msg X/Y:`.
+- The script removes `msg X/Y:` and `end`, then base64-decodes and zlib-decompresses to rebuild the `.grb` file.
+- Open `rebuilt.grb` with your GRIB viewer app.
+
 
 ## EXAMPLE ATLANTIC
 Utilising this method, you can acquire wind and pressure data for the Atlantic crossing with two time points with just 6 messages.
